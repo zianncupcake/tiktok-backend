@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//user entity in database schema
+//@id: mark this field as pri key
+//@defaul auto increment: auto cincrement id value for each new user
+//@unique: ensures that each email address is unique in the database
+//@default now: set default value to the current date and time when a new user is created
+//@updatedat: auto update this field to the current date and time whenever the user is updated
+model User {
+  id        Int       @id @default(autoincrement())     
+  fullname  String
+  bio       String?
+  image     String?
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+}
+
+//@map: assign a diff name to the col. access it using this mapped name
+//@relation: specify that this is a relation field. uses the userId field to reference the id field in the User model. Ondelete clause ensures that if a user is deleted, all associated posts are also deleted
+model Post {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  video     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  comments  Comment[]
+  likes     Like[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+//@@unique:ensures that combination of userId and postId is unique aka user can only like a specific post once, preventing duplication likes from the same user for the same post
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, postId])
+}
